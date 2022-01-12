@@ -1,0 +1,66 @@
+version: "3"
+
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: ./dockerfiles/Dockerfile.backend
+    working_dir: "/app/"
+    # well, to keep it running
+    command: tail -f /dev/null
+    volumes:
+      - .:/app
+      - ~/.ssh:/root/.ssh
+    ports:
+      - 8000:8000
+    container_name: celery_back
+    depends_on:
+      - postgresql
+      - redis
+
+  celery:
+    build:
+      context: .
+      dockerfile: ./dockerfiles/Dockerfile.backend
+    command: celery -A poccelery worker -l INFO -n worker1
+    volumes:
+      - .:/app
+    depends_on:
+      - backend
+      - redis
+
+  frontend:
+    build:
+      context: .
+      dockerfile: ./dockerfiles/Dockerfile.frontend
+    # well, to keep it running
+    command: tail -f /dev/null
+    working_dir: "/app/"
+    volumes:
+      - ./frontend:/app
+    ports:
+      - 8080:8080
+    depends_on:
+      - backend
+    container_name: celery_front
+
+  postgresql:
+    image: postgres:14.0
+    container_name: celery_postgres
+    ports:
+      - 5432:5432
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_DB: postgres
+      POSTGRES_PASSWORD: root
+    volumes:
+      - postgres14:/var/lib/posgresql/data
+
+  redis:
+    image: redis:alpine
+    container_name: celery_redis
+    ports:
+      - 6379:6379
+
+volumes:
+  postgres14:

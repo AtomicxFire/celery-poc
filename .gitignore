@@ -1,0 +1,13 @@
+*.pyc
+*.todo
+*.mwb*
+/env
+/static
+/media
+local.py
+.project
+.pydevproject
+.settings/
+nohup.out
+patches/
+/.cache
