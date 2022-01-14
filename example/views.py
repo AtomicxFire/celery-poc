@@ -1,3 +1,5 @@
+import logging
+
 from enum import Enum
 from example.models import File
 from example.serializers import FileSerializer, DjangoQSerializer
@@ -13,6 +15,7 @@ from celery import shared_task
 from poccelery.celery import app
 from django_q.models import OrmQ
 
+celery_logger = logging.getLogger("celery")
 
 class AsyncRuleEnum(Enum):
     CELERY = 0
@@ -73,19 +76,19 @@ class FileGenerateNewOnes(
         elif async_rule == AsyncRuleEnum.CELERY.value:
             if multiple:
                 for _ in range(0, quantity):
-                    AsyncClass.async_create_files.apply_async()
+                    AsyncClass.async_create_files.apply_async(queue="esms_flow")
             else:
-                AsyncClass.async_create_files.delay()
+                AsyncClass.async_create_files.apply_async(queue="esms_flow")
             return response.Response(status=status.HTTP_201_CREATED)
 
         elif async_rule == AsyncRuleEnum.CELERY_DJANGO_Q.value:
             if multiple:
                 for _ in range(0, quantity):
                     async_task(AsyncClass.create_files)
-                    AsyncClass.async_create_files.delay()
+                    AsyncClass.async_create_files.apply_async(queue="esms_flow")
             else:
                 async_task(AsyncClass.create_files)
-                AsyncClass.async_create_files.delay()
+                AsyncClass.async_create_files.apply_async(queue="esms_flow")
             return response.Response(status=status.HTTP_201_CREATED)
 
     def delete(self, request, *args, **kwargs):
@@ -113,6 +116,7 @@ class AsyncClass(object):
         faker = Faker()
         for _ in range(10):
             file_name = f"{uuid.uuid4().hex}.txt"
+            celery_logger.debug(f'Fichier: {file_name}')
             content = ""
             for _ in range(10000):
                 content += f"{faker.text()} \r\n"

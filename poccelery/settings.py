@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     "example",
     "corsheaders",
     "django_q",
+    "django_celery_results",
 ]
 
 MIDDLEWARE = [
@@ -156,7 +157,43 @@ Q_CLUSTER = {
 
 CORS_ORIGIN_ALLOW_ALL = True
 
-CELERY_BROKER_URL = "redis://redis:6379"
-CELERY_RESULT_BACKEND = "redis://redis:6379"
+
+CELERY_BROKER_URL = "redis://redis:6379/0"
+CELERY_RESULT_BACKEND = 'django-db'
+CELERY_QUEUES = {
+    "esms_flow": {"exchange": "default"},
+    "lpi_flow": {"exchange": "default"},
+    "cnsa_flow": {"exchange": "default"}
+}
+
 
 USE_TZ = False
+
+
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "readable": {
+            "format": "%(levelname)s %(asctime)s %(module)s:%(pathname)s:%(lineno)d -> %(message)s"
+        },
+    },
+    "handlers": {
+        "celery": {
+            "level": "DEBUG",
+            "class": "logging.handlers.TimedRotatingFileHandler",
+            "filename": "logs/celery.log",
+            "when": "D",
+            "interval": 30,
+            "backupCount": 2,
+            "formatter": "readable",
+        },
+    },
+    "loggers": {
+        "celery": {
+            "handlers": ["celery"],
+            "level": "DEBUG",
+            "propagate": False,
+        },
+    },
+}
